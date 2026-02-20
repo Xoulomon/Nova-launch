@@ -33,14 +33,43 @@ fn test_cannot_initialize_twice() {
 
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
+    let base_fee = 70_000_000;
+    let metadata_fee = 30_000_000;
 
-    // First call: Should succeed
+    // First initialization succeeds
+    client.initialize(&admin, &treasury, &base_fee, &metadata_fee);
+
+    // Verify initial state is set correctly
+    let state = client.get_state();
+    assert_eq!(state.admin, admin);
+    assert_eq!(state.treasury, treasury);
+    assert_eq!(state.base_fee, base_fee);
+    assert_eq!(state.metadata_fee, metadata_fee);
+
+    // Second initialization should panic with AlreadyInitialized error (#6)
+    client.initialize(&admin, &treasury, &70_000_000, &30_000_000);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_cannot_initialize_twice_with_different_params() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, TokenFactory);
+    let client = TokenFactoryClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let treasury = Address::generate(&env);
+    let different_admin = Address::generate(&env);
+    let different_treasury = Address::generate(&env);
+
+    // First initialization succeeds
     client.initialize(&admin, &treasury, &70_000_000, &30_000_000);
 
-    // Second call: Should panic with Error(Contract, #6)
+    // Attempt to initialize with different parameters should also fail
+    // Formatted multi-line to satisfy cargo fmt
     client.initialize(
-        &Address::generate(&env),
-        &Address::generate(&env),
+        &different_admin,
+        &different_treasury,
         &100_000_000,
         &50_000_000,
     );
@@ -178,7 +207,7 @@ fn test_mint_tokens_unauthorized() {
 }
 
 #[test]
-#[ignore] // Remove this attribute once create_token function is implemented
+#[ignore]
 fn test_create_token_without_metadata() {
     let env = Env::default();
     env.mock_all_auths();
@@ -186,48 +215,37 @@ fn test_create_token_without_metadata() {
     let contract_id = env.register_contract(None, TokenFactory);
     let client = TokenFactoryClient::new(&env, &contract_id);
 
-    // Setup
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let creator = Address::generate(&env);
+    let _creator = Address::generate(&env);
     let base_fee = 70_000_000;
     let metadata_fee = 30_000_000;
 
     client.initialize(&admin, &treasury, &base_fee, &metadata_fee);
 
-    // Token parameters without metadata
-    let name = String::from_str(&env, "Simple Token");
-    let symbol = String::from_str(&env, "SMPL");
-    let decimals = 7u32;
-    let initial_supply = 500_000_0000000i128;
-    let metadata_uri: Option<String> = None;
+    let _name = String::from_str(&env, "Simple Token");
+    let _symbol = String::from_str(&env, "SMPL");
+    let _decimals = 7u32;
+    let _initial_supply = 500_000_0000000i128;
+    let _metadata_uri: Option<String> = None;
+    let _expected_fee = base_fee;
 
-    // Only base fee required when no metadata
-    let expected_fee = base_fee;
-
-    // Deploy token without metadata
-    // TODO: Uncomment once create_token is implemented
-    // let token_address = client.create_token(
-    //     &creator,
-    //     &name,
-    //     &symbol,
-    //     &decimals,
-    //     &initial_supply,
-    //     &metadata_uri,
-    //     &expected_fee,
-    // );
-
-    // Verify token deployed
-    // assert!(token_address != Address::generate(&env));
-
-    // Verify token info has no metadata
-    // let token_info = client.get_token_info(&0).unwrap();
-    // assert_eq!(token_info.metadata_uri, None);
+    /*
+    let token_address = client.create_token(
+        &_creator,
+        &_name,
+        &_symbol,
+        &_decimals,
+        &_initial_supply,
+        &_metadata_uri,
+        &_expected_fee,
+    );
+    */
 }
 
 #[test]
-#[ignore] // Remove this attribute once create_token function is implemented
-#[should_panic(expected = "Error(Contract, #1)")] // InsufficientFee error
+#[ignore]
+#[should_panic(expected = "Error(Contract, #1)")]
 fn test_create_token_insufficient_fee() {
     let env = Env::default();
     env.mock_all_auths();
@@ -237,35 +255,33 @@ fn test_create_token_insufficient_fee() {
 
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let creator = Address::generate(&env);
+    let _creator = Address::generate(&env);
 
     client.initialize(&admin, &treasury, &70_000_000, &30_000_000);
 
-    let name = String::from_str(&env, "Test Token");
-    let symbol = String::from_str(&env, "TEST");
-    let decimals = 7u32;
-    let initial_supply = 1_000_000_0000000i128;
-    let metadata_uri = Some(String::from_str(&env, "ipfs://QmTest"));
+    let _name = String::from_str(&env, "Test Token");
+    let _symbol = String::from_str(&env, "TEST");
+    let _decimals = 7u32;
+    let _initial_supply = 1_000_000_0000000i128;
+    let _metadata_uri = Some(String::from_str(&env, "ipfs://QmTest"));
+    let _insufficient_fee = 50_000_000;
 
-    // Provide insufficient fee
-    let insufficient_fee = 50_000_000; // Less than base_fee + metadata_fee
-
-    // TODO: Uncomment once create_token is implemented
-    // This should panic with InsufficientFee error
-    // client.create_token(
-    //     &creator,
-    //     &name,
-    //     &symbol,
-    //     &decimals,
-    //     &initial_supply,
-    //     &metadata_uri,
-    //     &insufficient_fee,
-    // );
+    /*
+    client.create_token(
+        &_creator,
+        &_name,
+        &_symbol,
+        &_decimals,
+        &_initial_supply,
+        &_metadata_uri,
+        &_insufficient_fee,
+    );
+    */
 }
 
 #[test]
-#[ignore] // Remove this attribute once create_token function is implemented
-#[should_panic(expected = "Error(Contract, #3)")] // InvalidParameters error
+#[ignore]
+#[should_panic(expected = "Error(Contract, #3)")]
 fn test_create_token_invalid_parameters() {
     let env = Env::default();
     env.mock_all_auths();
@@ -275,25 +291,25 @@ fn test_create_token_invalid_parameters() {
 
     let admin = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let creator = Address::generate(&env);
+    let _creator = Address::generate(&env);
 
     client.initialize(&admin, &treasury, &70_000_000, &30_000_000);
 
-    let name = String::from_str(&env, ""); // Empty name - invalid
-    let symbol = String::from_str(&env, "TEST");
-    let decimals = 7u32;
-    let initial_supply = 1_000_000_0000000i128;
-    let metadata_uri: Option<String> = None;
+    let _name = String::from_str(&env, "");
+    let _symbol = String::from_str(&env, "TEST");
+    let _decimals = 7u32;
+    let _initial_supply = 1_000_000_0000000i128;
+    let _metadata_uri: Option<String> = None;
 
-    // TODO: Uncomment once create_token is implemented
-    // This should panic with InvalidParameters error
-    // client.create_token(
-    //     &creator,
-    //     &name,
-    //     &symbol,
-    //     &decimals,
-    //     &initial_supply,
-    //     &metadata_uri,
-    //     &70_000_000,
-    // );
+    /*
+    client.create_token(
+        &_creator,
+        &_name,
+        &_symbol,
+        &_decimals,
+        &_initial_supply,
+        &_metadata_uri,
+        &70_000_000,
+    );
+    */
 }
