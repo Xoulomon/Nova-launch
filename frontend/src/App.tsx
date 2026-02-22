@@ -102,11 +102,11 @@ function App() {
         <main id="main-content">
           <Container>
             <Card title="Deploy Your Token">
-              {error ? (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  {error}
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
+                  {typeof error === 'string' ? error : 'An error occurred'}
                 </div>
-              ) : null}
+              )}
               <TokenDeployForm
                 wallet={wallet}
                 onConnectWallet={connect}

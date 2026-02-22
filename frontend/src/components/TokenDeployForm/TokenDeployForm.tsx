@@ -204,20 +204,21 @@ export function TokenDeployForm({
             <FeeDisplay feeBreakdown={feeBreakdown} hasMetadata={hasMetadataInput} />
 
             {status === 'error' && error ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4" role="alert">
-                    <h4 className="font-medium text-red-800">Deployment Failed</h4>
-                    <p className="mt-2 text-sm text-red-700">
-                        {error.details ? `${error.message}: ${error.details}` : error.message}
-                    </p>
-                    <Button className="mt-3" variant="danger" onClick={() => void handleRetry()}>
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                    <h3 className="font-semibold text-red-800 mb-2">Deployment Failed</h3>
+                    <p className="text-red-700 mb-3">{typeof error === 'string' ? error : error.message || 'An error occurred during deployment'}</p>
+                    <button
+                        onClick={() => void handleRetry()}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                    >
                         Retry Deployment
-                    </Button>
+                    </button>
                 </div>
             ) : null}
 
             {localError ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4" role="alert">
-                    <p className="text-sm text-red-700">{localError}</p>
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
+                    {typeof localError === 'string' ? localError : 'An error occurred'}
                 </div>
             ) : null}
 
