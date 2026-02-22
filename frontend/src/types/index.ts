@@ -79,3 +79,36 @@ export const ErrorCode = {
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+
+// Burn Statistics Types
+export interface BurnStats {
+    totalBurned: string;
+    burnCount: number;
+    initialSupply: string;
+    currentSupply: string;
+    percentBurned: number;
+}
+
+export interface BurnRecord {
+    id: string;
+    timestamp: number;
+    from: string;
+    amount: string;
+    isAdminBurn: boolean;
+    txHash: string;
+    blockNumber?: number;
+}
+
+export interface BurnHistoryFilter {
+    startDate?: Date;
+    endDate?: Date;
+    type?: 'all' | 'admin' | 'self';
+    sortBy?: 'timestamp' | 'amount';
+    sortOrder?: 'asc' | 'desc';
+}
+
+export interface BurnChartData {
+    labels: string[];
+    values: number[];
+    cumulative: number[];
+}
