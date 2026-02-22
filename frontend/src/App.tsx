@@ -2,10 +2,12 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useNetwork } from "./hooks/useNetwork";
 import { useWallet } from "./hooks/useWallet";
 import { Spinner, ErrorBoundary } from "./components/UI";
+import { DashboardLayout } from "./components/Layout";
 
 // Lazy load below-the-fold components for performance
 const LandingPage = lazy(() => import("./pages/LandingPage").then(module => ({ default: module.default })));
 const NotFoundRoute = lazy(() => import("./routes/NotFoundRoute").then(module => ({ default: module.default })));
+const RecurringPayments = lazy(() => import("./app/dashboard/RecurringPayments").then(module => ({ default: module.default })));
 
 // Loading fallback for lazy-loaded components
 function PageLoader() {
@@ -80,6 +82,22 @@ function App() {
   }, [pathname]);
 
   const page = useMemo(() => {
+    // Recurring Payments route - uses DashboardLayout
+    if (pathname === "/recurring-payments") {
+      return (
+        <DashboardLayout
+          wallet={wallet}
+          onConnect={connect}
+          onDisconnect={disconnect}
+          isConnecting={isConnecting}
+          currentPath={pathname}
+        >
+          <RecurringPayments />
+        </DashboardLayout>
+      );
+    }
+
+    // Landing page routes
     if (pathname === "/" || pathname === "/deploy") {
       return (
         <LandingPage
