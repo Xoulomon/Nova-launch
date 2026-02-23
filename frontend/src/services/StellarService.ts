@@ -5,8 +5,9 @@ import {
     scValToNative,
     nativeToScVal,
     rpc,
+    Transaction,
 } from '@stellar/stellar-sdk';
-import type { TokenDeployParams, DeploymentResult, FeeBreakdown } from '../types';
+import type { TokenDeployParams, DeploymentResult } from '../types';
 import { STELLAR_CONFIG, getNetworkConfig } from '../config/stellar';
 import { getDeploymentFeeBreakdown as calculateFeeBreakdown } from '../utils/feeCalculation';
 import { WalletService } from './wallet';
@@ -50,7 +51,7 @@ export class StellarService {
             const preparedTx = rpc.assembleTransaction(transaction, simulatedTx).build();
 
             const signedXdr = await this.requestSignature(preparedTx.toXDR());
-            const signedTx = TransactionBuilder.fromXDR(signedXdr, this.networkPassphrase);
+            const signedTx = TransactionBuilder.fromXDR(signedXdr, this.networkPassphrase) as Transaction;
 
             const response = await this.submitTransaction(signedTx);
             const result = await this.waitForConfirmation(response.hash);
@@ -92,10 +93,17 @@ export class StellarService {
         return simulatedTx as rpc.Api.SimulateTransactionSuccessResponse;
     }
 
-    private async requestSignature(xdr: string): Promise<string> {
-        const signedTxXdr = await WalletService.signTransaction(xdr, this.networkPassphrase);
-        if (!signedTxXdr) {
-            throw new Error('Transaction signing failed or was rejected');
+    private async requestSignature(_xdr: string): Promise<string> {
+        // This would integrate with a wallet like Freighter
+        // For now, throw an error indicating wallet integration is needed
+        throw new Error('Wallet integration required - please connect a Stellar wallet');
+    }
+
+    private async submitTransaction(transaction: ReturnType<typeof TransactionBuilder.prototype.build>) {
+        const response = await this.server.sendTransaction(transaction);
+        
+        if (response.status === 'ERROR') {
+            throw new Error(`Transaction submission failed: ${response.errorResult}`);
         }
 
         return signedTxXdr;
