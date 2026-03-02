@@ -5,6 +5,7 @@ mod storage;
 mod burn;
 mod types;
 mod validation;
+mod timelock;
 
 use soroban_sdk::{contract, contractimpl, Address, Env, String};
 use types::{ContractMetadata, Error, FactoryState, TokenInfo};
@@ -672,6 +673,194 @@ impl TokenFactory {
         burn::get_burn_count(&env, token_index)
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // Timelock Functions
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Schedule a fee update with timelock
+    ///
+    /// Schedules a change to base_fee or metadata_fee that cannot be executed
+    /// until the timelock delay has passed. This provides transparency and
+    /// allows users to react to upcoming changes.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `admin` - Admin address (must authorize and match stored admin)
+    /// * `base_fee` - Optional new base fee in stroops (None = no change)
+    /// * `metadata_fee` - Optional new metadata fee in stroops (None = no change)
+    ///
+    /// # Returns
+    /// Returns the change ID that can be used to execute or cancel the change
+    ///
+    /// # Errors
+    /// * `Error::Unauthorized` - Caller is not the admin
+    /// * `Error::InvalidParameters` - Both fees are None or any fee is negative
+    ///
+    /// # Examples
+    /// ```
+    /// // Schedule fee update
+    /// let change_id = factory.schedule_fee_update(&env, admin, Some(2_000_000), None)?;
+    /// // Wait for timelock to expire, then execute
+    /// factory.execute_change(&env, change_id)?;
+    /// ```
+    pub fn schedule_fee_update(
+        env: Env,
+        admin: Address,
+        base_fee: Option<i128>,
+        metadata_fee: Option<i128>,
+    ) -> Result<u64, Error> {
+        timelock::schedule_fee_update(&env, &admin, base_fee, metadata_fee)
+    }
+
+    /// Schedule a pause state change with timelock
+    ///
+    /// Schedules a change to the contract's pause state that cannot be executed
+    /// until the timelock delay has passed.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `admin` - Admin address (must authorize and match stored admin)
+    /// * `paused` - New pause state (true to pause, false to unpause)
+    ///
+    /// # Returns
+    /// Returns the change ID
+    ///
+    /// # Errors
+    /// * `Error::Unauthorized` - Caller is not the admin
+    ///
+    /// # Examples
+    /// ```
+    /// let change_id = factory.schedule_pause_update(&env, admin, true)?;
+    /// ```
+    pub fn schedule_pause_update(
+        env: Env,
+        admin: Address,
+        paused: bool,
+    ) -> Result<u64, Error> {
+        timelock::schedule_pause_update(&env, &admin, paused)
+    }
+
+    /// Schedule a treasury address change with timelock
+    ///
+    /// Schedules a change to the treasury address that cannot be executed
+    /// until the timelock delay has passed.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `admin` - Admin address (must authorize and match stored admin)
+    /// * `new_treasury` - New treasury address
+    ///
+    /// # Returns
+    /// Returns the change ID
+    ///
+    /// # Errors
+    /// * `Error::Unauthorized` - Caller is not the admin
+    ///
+    /// # Examples
+    /// ```
+    /// let change_id = factory.schedule_treasury_update(&env, admin, new_treasury)?;
+    /// ```
+    pub fn schedule_treasury_update(
+        env: Env,
+        admin: Address,
+        new_treasury: Address,
+    ) -> Result<u64, Error> {
+        timelock::schedule_treasury_update(&env, &admin, &new_treasury)
+    }
+
+    /// Execute a pending change
+    ///
+    /// Executes a previously scheduled change after the timelock has expired.
+    /// Anyone can call this function once the timelock period has elapsed.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `change_id` - ID of the pending change to execute
+    ///
+    /// # Returns
+    /// Returns `Ok(())` on success
+    ///
+    /// # Errors
+    /// * `Error::TokenNotFound` - Change ID not found
+    /// * `Error::TimelockNotExpired` - Timelock period has not elapsed
+    /// * `Error::ChangeAlreadyExecuted` - Change has already been executed
+    ///
+    /// # Examples
+    /// ```
+    /// // After timelock expires
+    /// factory.execute_change(&env, change_id)?;
+    /// ```
+    pub fn execute_change(env: Env, change_id: u64) -> Result<(), Error> {
+        timelock::execute_change(&env, change_id)
+    }
+
+    /// Cancel a pending change
+    ///
+    /// Cancels a scheduled change before it is executed.
+    /// Only the admin can cancel pending changes.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `admin` - Admin address (must authorize and match stored admin)
+    /// * `change_id` - ID of the pending change to cancel
+    ///
+    /// # Returns
+    /// Returns `Ok(())` on success
+    ///
+    /// # Errors
+    /// * `Error::Unauthorized` - Caller is not the admin
+    /// * `Error::TokenNotFound` - Change ID not found
+    /// * `Error::ChangeAlreadyExecuted` - Change has already been executed
+    ///
+    /// # Examples
+    /// ```
+    /// factory.cancel_change(&env, admin, change_id)?;
+    /// ```
+    pub fn cancel_change(env: Env, admin: Address, change_id: u64) -> Result<(), Error> {
+        timelock::cancel_change(&env, &admin, change_id)
+    }
+
+    /// Get pending change details
+    ///
+    /// Retrieves information about a scheduled change including when it
+    /// can be executed and what parameters will be changed.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `change_id` - ID of the pending change
+    ///
+    /// # Returns
+    /// Returns the PendingChange if found, None otherwise
+    ///
+    /// # Examples
+    /// ```
+    /// if let Some(change) = factory.get_pending_change(&env, change_id) {
+    ///     log!("Change can be executed at: {}", change.execute_at);
+    /// }
+    /// ```
+    pub fn get_pending_change(env: Env, change_id: u64) -> Option<types::PendingChange> {
+        timelock::get_pending_change(&env, change_id)
+    }
+
+    /// Get timelock configuration
+    ///
+    /// Returns the current timelock settings including the delay period.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    ///
+    /// # Returns
+    /// Returns the TimelockConfig
+    ///
+    /// # Examples
+    /// ```
+    /// let config = factory.get_timelock_config(&env);
+    /// log!("Timelock delay: {} seconds", config.delay_seconds);
+    /// ```
+    pub fn get_timelock_config(env: Env) -> types::TimelockConfig {
+        timelock::get_timelock_config(&env)
+    }
+
 }
 
 // Temporarily disabled - requires create_token implementation
@@ -732,3 +921,6 @@ mod fuzz_test;
 #[cfg(test)]
 mod integration_test;
 mod gas_benchmark_comprehensive;
+
+#[cfg(test)]
+mod timelock_test;

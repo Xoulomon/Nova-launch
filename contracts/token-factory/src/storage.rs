@@ -660,3 +660,47 @@ pub fn get_admin_state(env: &Env) -> (Address, bool) {
     let paused = is_paused(env);
     (admin, paused)
 }
+
+
+// ── Timelock storage functions ─────────────────────────────
+
+pub fn get_timelock_config(env: &Env) -> crate::types::TimelockConfig {
+    env.storage()
+        .instance()
+        .get(&DataKey::TimelockConfig)
+        .unwrap_or(crate::types::TimelockConfig {
+            delay_seconds: 172_800, // 48 hours default
+            enabled: false,
+        })
+}
+
+pub fn set_timelock_config(env: &Env, config: &crate::types::TimelockConfig) {
+    env.storage().instance().set(&DataKey::TimelockConfig, config);
+}
+
+pub fn get_next_change_id(env: &Env) -> u64 {
+    let id = env.storage()
+        .instance()
+        .get(&DataKey::NextChangeId)
+        .unwrap_or(0_u64);
+    env.storage().instance().set(&DataKey::NextChangeId, &(id + 1));
+    id
+}
+
+pub fn get_pending_change(env: &Env, change_id: u64) -> Option<crate::types::PendingChange> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::PendingChange(change_id))
+}
+
+pub fn set_pending_change(env: &Env, change_id: u64, change: &crate::types::PendingChange) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::PendingChange(change_id), change);
+}
+
+pub fn remove_pending_change(env: &Env, change_id: u64) {
+    env.storage()
+        .persistent()
+        .remove(&DataKey::PendingChange(change_id));
+}

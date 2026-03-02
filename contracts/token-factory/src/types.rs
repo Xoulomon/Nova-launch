@@ -124,6 +124,9 @@ pub struct FeeUpdate {
 /// * `BurnCount(u32)` - Number of burns for token
 /// * `TokenByAddress(Address)` - Token info lookup by address
 /// * `Paused` - Contract pause state
+/// * `TimelockConfig` - Timelock configuration
+/// * `PendingChange(u64)` - Pending change by ID
+/// * `NextChangeId` - Next available change ID
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
@@ -137,6 +140,9 @@ pub enum DataKey {
     BurnCount(u32),
     TokenByAddress(Address),
     Paused,
+    TimelockConfig,
+    PendingChange(u64),
+    NextChangeId,
 }
 
 /// Contract error codes
@@ -159,6 +165,8 @@ pub enum DataKey {
 /// * `InvalidBurnAmount` - Burn amount is invalid
 /// * `BurnAmountExceedsBalance` - Burn amount exceeds available balance
 /// * `ContractPaused` - Operation not allowed while paused
+/// * `TimelockNotExpired` - Timelock period has not elapsed
+/// * `ChangeAlreadyExecuted` - Change has already been executed
 ///
 /// # Examples
 /// ```
@@ -183,4 +191,62 @@ pub enum Error {
     InvalidBurnAmount = 12,
     BurnAmountExceedsBalance = 13,
     ContractPaused = 14,
+    TimelockNotExpired = 15,
+    ChangeAlreadyExecuted = 16,
+}
+
+/// Timelock configuration
+///
+/// Defines the delay period for sensitive operations.
+///
+/// # Fields
+/// * `delay_seconds` - Time delay in seconds before changes can be executed
+/// * `enabled` - Whether timelock is currently active
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TimelockConfig {
+    pub delay_seconds: u64,
+    pub enabled: bool,
+}
+
+/// Type of pending change
+///
+/// Identifies which operation is being timelocked.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ChangeType {
+    FeeUpdate,
+    PauseUpdate,
+    TreasuryUpdate,
+}
+
+/// Pending change awaiting timelock expiry
+///
+/// Represents a scheduled change that cannot be executed
+/// until the timelock period has elapsed.
+///
+/// # Fields
+/// * `id` - Unique identifier for this change
+/// * `change_type` - Type of change being scheduled
+/// * `scheduled_by` - Admin who scheduled the change
+/// * `scheduled_at` - Timestamp when change was scheduled
+/// * `execute_at` - Timestamp when change can be executed
+/// * `executed` - Whether the change has been executed
+/// * `base_fee` - New base fee (for FeeUpdate)
+/// * `metadata_fee` - New metadata fee (for FeeUpdate)
+/// * `paused` - New pause state (for PauseUpdate)
+/// * `treasury` - New treasury address (for TreasuryUpdate)
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PendingChange {
+    pub id: u64,
+    pub change_type: ChangeType,
+    pub scheduled_by: Address,
+    pub scheduled_at: u64,
+    pub execute_at: u64,
+    pub executed: bool,
+    pub base_fee: Option<i128>,
+    pub metadata_fee: Option<i128>,
+    pub paused: Option<bool>,
+    pub treasury: Option<Address>,
 }
