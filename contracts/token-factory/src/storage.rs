@@ -660,3 +660,23 @@ pub fn get_admin_state(env: &Env) -> (Address, bool) {
     let paused = is_paused(env);
     (admin, paused)
 }
+
+// Freeze management
+pub fn is_address_frozen(env: &Env, token_address: &Address, user_address: &Address) -> bool {
+    env.storage()
+        .instance()
+        .get(&DataKey::FrozenAddress(token_address.clone(), user_address.clone()))
+        .unwrap_or(false)
+}
+
+pub fn set_address_frozen(env: &Env, token_address: &Address, user_address: &Address, frozen: bool) {
+    if frozen {
+        env.storage()
+            .instance()
+            .set(&DataKey::FrozenAddress(token_address.clone(), user_address.clone()), &true);
+    } else {
+        env.storage()
+            .instance()
+            .remove(&DataKey::FrozenAddress(token_address.clone(), user_address.clone()));
+    }
+}

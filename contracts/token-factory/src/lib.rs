@@ -1,5 +1,7 @@
 #![no_std]
 
+mod freeze_functions;
+
 mod events;
 mod storage;
 mod burn;
@@ -672,6 +674,59 @@ impl TokenFactory {
         burn::get_burn_count(&env, token_index)
     }
 
+
+    /// Freeze an address for a specific token
+    ///
+    /// Prevents the frozen address from participating in transfers, burns, or mints.
+    /// Only the token creator can freeze addresses.
+    ///
+    /// Implements #317
+    pub fn freeze_address(
+        env: Env,
+        token_address: Address,
+        admin: Address,
+        address_to_freeze: Address,
+    ) -> Result<(), Error> {
+        freeze_functions::freeze_address(&env, &token_address, &admin, &address_to_freeze)
+    }
+
+    /// Unfreeze an address for a specific token
+    ///
+    /// Restores normal functionality for a previously frozen address.
+    /// Only the token creator can unfreeze addresses.
+    ///
+    /// Implements #317
+    pub fn unfreeze_address(
+        env: Env,
+        token_address: Address,
+        admin: Address,
+        address_to_unfreeze: Address,
+    ) -> Result<(), Error> {
+        freeze_functions::unfreeze_address(&env, &token_address, &admin, &address_to_unfreeze)
+    }
+
+    /// Check if an address is frozen for a specific token
+    ///
+    /// Returns true if the address is frozen, false otherwise.
+    pub fn is_address_frozen(
+        env: Env,
+        token_address: Address,
+        address: Address,
+    ) -> bool {
+        freeze_functions::is_frozen(&env, &token_address, &address)
+    }
+
+    /// Toggle freeze capability for a token (creator only)
+    ///
+    /// Allows token creator to enable or disable freeze functionality.
+    pub fn set_freeze_enabled(
+        env: Env,
+        token_address: Address,
+        admin: Address,
+        enabled: bool,
+    ) -> Result<(), Error> {
+        freeze_functions::set_freeze_enabled(&env, &token_address, &admin, enabled)
+    }
 }
 
 // Temporarily disabled - requires create_token implementation
@@ -731,4 +786,7 @@ mod fuzz_test;
 
 #[cfg(test)]
 mod integration_test;
+#[cfg(test)]
+mod freeze_test;
+
 mod gas_benchmark_comprehensive;

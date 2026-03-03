@@ -82,6 +82,7 @@ pub struct TokenInfo {
     pub total_burned: i128,
     pub burn_count: u32,
     pub clawback_enabled: bool,
+    pub freeze_enabled: bool,
 }
 
 /// Batch fee update structure for Phase 2 optimization
@@ -137,6 +138,7 @@ pub enum DataKey {
     BurnCount(u32),
     TokenByAddress(Address),
     Paused,
+    FrozenAddress(Address, Address), // (token_address, user_address)
 }
 
 /// Contract error codes
