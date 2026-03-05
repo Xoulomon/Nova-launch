@@ -26,6 +26,9 @@ mod stream_error_test;
 #[cfg(test)]
 mod create_stream_test;
 
+#[cfg(test)]
+mod stream_pagination_test;
+
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, String, Vec};
 use types::{ContractMetadata, Error, FactoryState, TokenInfo, TokenStats};
 
@@ -774,6 +777,54 @@ impl TokenFactory {
     /// * `Error::StreamNotFound` - Stream ID does not exist
     pub fn get_stream(env: Env, stream_id: u32) -> Result<stream_types::StreamInfo, Error> {
         storage::get_stream(&env, stream_id).ok_or(Error::StreamNotFound)
+    }
+
+    /// Get total number of streams created
+    ///
+    /// # Returns
+    /// Total count of all streams
+    pub fn get_stream_count(env: Env) -> u32 {
+        storage::get_stream_count(&env)
+    }
+
+    /// Get paginated list of streams
+    ///
+    /// Retrieves streams in pages with stable ordering by stream ID.
+    /// Maximum limit is 100 to prevent expensive reads.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `cursor` - Starting stream ID (1-based)
+    /// * `limit` - Maximum number of streams to return (max 100)
+    ///
+    /// # Returns
+    /// Vector of StreamInfo objects
+    ///
+    /// # Errors
+    /// * `Error::InvalidParameters` - Limit exceeds 100 or cursor is 0
+    pub fn get_streams_page(
+        env: Env,
+        cursor: u32,
+        limit: u32,
+    ) -> Result<Vec<stream_types::StreamInfo>, Error> {
+        const MAX_LIMIT: u32 = 100;
+
+        if limit == 0 || limit > MAX_LIMIT || cursor == 0 {
+            return Err(Error::InvalidParameters);
+        }
+
+        let total_count = storage::get_stream_count(&env);
+        let mut streams = Vec::new(&env);
+
+        let end = cursor.saturating_add(limit).min(total_count + 1);
+
+        for stream_id in cursor..end {
+            if let Some(stream) = storage::get_stream(&env, stream_id) {
+                streams.push_back(stream);
+            }
+        }
+
+        Ok(streams)
     }
 
     /// Toggle clawback capability for a token (creator only)
