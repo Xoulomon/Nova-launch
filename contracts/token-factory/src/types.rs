@@ -273,6 +273,7 @@ pub enum DataKey {
     OwnerVaultCount(Address),
     VaultByCreator(Address, u32),
     CreatorVaultCount(Address),
+    BuybackCampaign(u64),
 }
 
 /// Contract error codes
@@ -325,6 +326,11 @@ pub enum Error {
     VotingNotStarted = 40,
     VotingEnded = 41,
     AlreadyVoted = 42,
+    CampaignNotFound = 43,
+    CampaignInactive = 44,
+    ExceedsStepLimit = 45,
+    InsufficientBudget = 46,
+    SlippageExceeded = 47,
 }
 
 /// Type of pending change

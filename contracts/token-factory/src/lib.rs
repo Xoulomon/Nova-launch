@@ -4,6 +4,7 @@ mod freeze_functions;
 mod governance;
 
 mod burn;
+mod buyback;
 mod differential_engine;
 mod event_versions;
 mod events;
@@ -23,6 +24,9 @@ mod validation;
 
 #[cfg(test)]
 mod governance_property_test;
+
+#[cfg(test)]
+mod buyback_integration_test;
 
 // #[cfg(test)]
 // mod stream_metadata_update_test;
