@@ -10,6 +10,8 @@ mod buyback_test;
 #[cfg(test)]
 mod buyback_error_stability_test;
 #[cfg(test)]
+mod buyback_event_schema_test;
+#[cfg(test)]
 mod campaign_query_test;
 mod differential_engine;
 mod event_versions;
