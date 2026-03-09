@@ -1055,6 +1055,112 @@ pub fn get_creator_vault_count(env: &Env, creator: &Address) -> u32 {
         .unwrap_or(0)
 }
 
+/// Get a page of vaults in ascending vault_id order
+///
+/// # Parameters
+/// * `cursor` - Starting position (0 = start from vault_id 1, N = start from vault_id N)
+/// * `limit` - Maximum number of vaults to return
+///
+/// # Returns
+/// VaultsPage with vaults vector and optional next_cursor
+pub fn get_vaults_page(env: &Env, cursor: u64, limit: u32) -> crate::types::VaultsPage {
+    use soroban_sdk::Vec;
+    
+    let total_count = get_vault_count(env);
+    let mut vaults = Vec::new(env);
+    
+    // Handle edge cases
+    if limit == 0 || cursor > total_count {
+        return crate::types::VaultsPage {
+            vaults,
+            next_cursor: None,
+        };
+    }
+    
+    // Calculate range
+    let start = if cursor == 0 { 1 } else { cursor };
+    let end = (start + limit as u64).min(total_count + 1);
+    
+    // Collect vaults
+    for vault_id in start..end {
+        if let Some(vault) = get_vault(env, vault_id) {
+            vaults.push_back(vault);
+        }
+    }
+    
+    // Calculate next cursor
+    let next_cursor = if end <= total_count {
+        Some(end)
+    } else {
+        None
+    };
+    
+    crate::types::VaultsPage {
+        vaults,
+        next_cursor,
+    }
+}
+
+/// Get a page of vaults owned by a specific address
+///
+/// # Parameters
+/// * `owner` - Address to filter by
+/// * `cursor` - Starting position in owner's vault list (0-indexed)
+/// * `limit` - Maximum number of vaults to return
+///
+/// # Returns
+/// VaultsPage with filtered vaults and optional next_cursor
+pub fn get_vaults_by_owner(
+    env: &Env,
+    owner: &Address,
+    cursor: u64,
+    limit: u32,
+) -> crate::types::VaultsPage {
+    use soroban_sdk::Vec;
+    
+    let owner_count = get_owner_vault_count(env, owner) as u64;
+    let mut vaults = Vec::new(env);
+    
+    // Handle edge cases
+    if limit == 0 || cursor >= owner_count {
+        return crate::types::VaultsPage {
+            vaults,
+            next_cursor: None,
+        };
+    }
+    
+    // Calculate range
+    let start = cursor;
+    let end = (start + limit as u64).min(owner_count);
+    
+    // Collect vaults
+    for index in start..end {
+        let vault_id: u64 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::VaultByOwner(owner.clone(), index as u32))
+            .unwrap_or(0);
+        
+        if vault_id > 0 {
+            if let Some(vault) = get_vault(env, vault_id) {
+                vaults.push_back(vault);
+            }
+        }
+    }
+    
+    // Calculate next cursor
+    let next_cursor = if end < owner_count {
+        Some(end)
+    } else {
+        None
+    };
+    
+    crate::types::VaultsPage {
+        vaults,
+        next_cursor,
+    }
+}
+
 // ── Governance proposal storage ─────────────────────────────────────────
 
 /// Get proposal count

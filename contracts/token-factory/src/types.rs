@@ -488,6 +488,22 @@ pub struct PaginatedTokens {
     pub cursor: PaginationCursor,
 }
 
+/// Paginated vault result
+///
+/// Contains a page of vaults and an optional cursor for fetching the next page.
+///
+/// # Fields
+/// * `vaults` - Vector of vault records in ascending vault_id order
+/// * `next_cursor` - Cursor for next page (None = no more results)
+///   - For get_vaults_page: next vault_id to fetch
+///   - For get_vaults_by_owner: next index in owner's vault list
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VaultsPage {
+    pub vaults: soroban_sdk::Vec<Vault>,
+    pub next_cursor: Option<u64>,
+}
+
 /// Treasury withdrawal policy
 ///
 /// Defines limits and controls for treasury withdrawals.
